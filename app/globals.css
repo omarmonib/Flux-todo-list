@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* Switches dark: utilities from following the OS to following a .dark class on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 1rem;
+  --background: hsl(40 20% 98%);
+  --foreground: hsl(220 15% 12%);
+  --card: hsl(40 25% 99%);
+  --card-foreground: hsl(220 15% 12%);
+  --primary: hsl(220 15% 12%);
+  --primary-foreground: hsl(40 20% 98%);
+  --secondary: hsl(220 14% 94%);
+  --secondary-foreground: hsl(220 15% 12%);
+  --muted: hsl(220 14% 95%);
+  --muted-foreground: hsl(220 8% 46%);
+  --border: hsl(220 13% 88%);
+  --input: hsl(220 13% 88%);
+  --ring: hsl(16 100% 62%);
+  --ember: hsl(16 100% 62%);
+  --sprout: hsl(156 64% 42%);
+}
+
+.dark {
+  --background: hsl(222 18% 7%);
+  --foreground: hsl(220 20% 92%);
+  --card: hsl(222 16% 10%);
+  --card-foreground: hsl(220 20% 92%);
+  --primary: hsl(220 20% 92%);
+  --primary-foreground: hsl(222 18% 9%);
+  --secondary: hsl(222 14% 14%);
+  --secondary-foreground: hsl(220 20% 92%);
+  --muted: hsl(222 14% 14%);
+  --muted-foreground: hsl(220 10% 60%);
+  --border: hsl(222 14% 18%);
+  --input: hsl(222 14% 18%);
+  --ring: hsl(16 100% 64%);
+  --ember: hsl(16 95% 64%);
+  --sprout: hsl(156 55% 50%);
+}
+
+/* Maps the raw variables above onto Tailwind utilities — this is what
+   makes bg-background, text-foreground, text-ember, etc. exist at all. */
+@theme inline {
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ember: var(--ember);
+  --color-sprout: var(--sprout);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

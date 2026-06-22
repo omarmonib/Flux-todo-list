@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 type Task = {
@@ -49,48 +50,103 @@ export function TaskCard({
   onDeleted: (id: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editDescription, setEditDescription] = useState(task.description ?? '');
 
   const isOverdue =
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED';
 
   async function updateStatus(status: Task['status']) {
-    // Optimistic update
     onUpdated({ ...task, status });
-
     const res = await fetch(`/api/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-
     if (res.ok) {
       const data = await res.json();
       onUpdated(data);
       toast.success('Task updated');
     } else {
-      // Revert on failure
       onUpdated(task);
       toast.error('Failed to update task');
     }
   }
 
+  async function saveEdit() {
+    if (!editTitle.trim()) return;
+    setLoading(true);
+
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: editTitle,
+        description: editDescription || undefined,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      onUpdated(data);
+      setEditing(false);
+      toast.success('Task saved');
+    } else {
+      toast.error('Failed to save task');
+    }
+    setLoading(false);
+  }
+
   async function deleteTask() {
     if (!confirm('Delete this task?')) return;
     setLoading(true);
-
-    // Optimistic delete
     onDeleted(task.id);
-
     const res = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
-
     if (res.ok) {
       toast.success('Task deleted');
     } else {
-      // Revert on failure
       onUpdated(task);
       toast.error('Failed to delete task');
       setLoading(false);
     }
+  }
+
+  if (editing) {
+    return (
+      <Card className="border-primary">
+        <CardContent className="pt-4 pb-4 space-y-3">
+          <Input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            placeholder="Task title"
+            className="font-medium"
+            autoFocus
+          />
+          <Input
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            placeholder="Description (optional)"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={saveEdit} disabled={loading}>
+              {loading ? 'Saving...' : 'Save'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditing(false);
+                setEditTitle(task.title);
+                setEditDescription(task.description ?? '');
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -146,6 +202,15 @@ export function TaskCard({
             <option value="IN_PROGRESS">In Progress</option>
             <option value="COMPLETED">Completed</option>
           </select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditing(true)}
+            disabled={loading}
+            className="h-7 text-xs"
+          >
+            ✏️
+          </Button>
           <Button
             variant="destructive"
             size="sm"

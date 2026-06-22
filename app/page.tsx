@@ -1,7 +1,5 @@
+import { redirect } from 'next/navigation';
+
 export default function HomePage() {
-  return (
-    <main className="min-h-screen flex items-center justify-center p-8">
-      
-    </main>
-  );
+  redirect('/tasks');
 }

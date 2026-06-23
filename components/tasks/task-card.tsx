@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { TaskDetailModal } from './task-detail-modal';
 
 type Task = {
   id: string;
@@ -51,6 +52,7 @@ export function TaskCard({
 }) {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDescription, setEditDescription] = useState(task.description ?? '');
 
@@ -77,7 +79,6 @@ export function TaskCard({
   async function saveEdit() {
     if (!editTitle.trim()) return;
     setLoading(true);
-
     const res = await fetch(`/api/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -86,7 +87,6 @@ export function TaskCard({
         description: editDescription || undefined,
       }),
     });
-
     if (res.ok) {
       const data = await res.json();
       onUpdated(data);
@@ -150,78 +150,95 @@ export function TaskCard({
   }
 
   return (
-    <Card
-      className={`transition-all duration-200 hover:shadow-md ${
-        task.status === 'COMPLETED' ? 'opacity-60' : ''
-      }`}
-    >
-      <CardContent className="flex items-start justify-between gap-4 pt-4 pb-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3
-              className={`font-medium text-foreground ${
-                task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''
-              }`}
-            >
-              {task.title}
-            </h3>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityConfig[task.priority].class}`}
-            >
-              {priorityConfig[task.priority].label}
-            </span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig[task.status].class}`}
-            >
-              {statusConfig[task.status].label}
-            </span>
+    <>
+      <Card
+        className={`transition-all duration-200 hover:shadow-md cursor-pointer ${
+          task.status === 'COMPLETED' ? 'opacity-60' : ''
+        }`}
+        onClick={() => setModalOpen(true)}
+      >
+        <CardContent className="flex items-start justify-between gap-4 pt-4 pb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3
+                className={`font-medium text-foreground ${
+                  task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''
+                }`}
+              >
+                {task.title}
+              </h3>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityConfig[task.priority].class}`}
+              >
+                {priorityConfig[task.priority].label}
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig[task.status].class}`}
+              >
+                {statusConfig[task.status].label}
+              </span>
+            </div>
+
+            {task.description && (
+              <p className="text-sm text-muted-foreground mt-1 truncate">{task.description}</p>
+            )}
+
+            {task.dueDate && (
+              <p
+                className={`text-xs mt-1 ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}
+              >
+                {isOverdue ? '⚠ Overdue · ' : '📅 '}
+                {new Date(task.dueDate).toLocaleDateString()}
+              </p>
+            )}
           </div>
 
-          {task.description && (
-            <p className="text-sm text-muted-foreground mt-1 truncate">{task.description}</p>
-          )}
-
-          {task.dueDate && (
-            <p
-              className={`text-xs mt-1 ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}
+          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <select
+              value={task.status}
+              onChange={(e) => updateStatus(e.target.value as Task['status'])}
+              disabled={loading}
+              className="text-xs h-7 rounded border border-input bg-background px-2 text-foreground cursor-pointer"
             >
-              {isOverdue ? '⚠ Overdue · ' : '📅 '}
-              {new Date(task.dueDate).toLocaleDateString()}
-            </p>
-          )}
-        </div>
+              <option value="PENDING">Pending</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
+              disabled={loading}
+              className="h-7 text-xs"
+            >
+              ✏️
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteTask();
+              }}
+              disabled={loading}
+              className="h-7 text-xs"
+            >
+              ✕
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <select
-            value={task.status}
-            onChange={(e) => updateStatus(e.target.value as Task['status'])}
-            disabled={loading}
-            className="text-xs h-7 rounded border border-input bg-background px-2 text-foreground cursor-pointer"
-          >
-            <option value="PENDING">Pending</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
-          </select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditing(true)}
-            disabled={loading}
-            className="h-7 text-xs"
-          >
-            ✏️
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={deleteTask}
-            disabled={loading}
-            className="h-7 text-xs"
-          >
-            ✕
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      <TaskDetailModal
+        task={task}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onUpdated={onUpdated}
+        onDeleted={onDeleted}
+      />
+    </>
   );
 }

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { useTasks } from '@/lib/hooks/use-tasks';
 
 type Task = {
   id: string;
@@ -18,43 +18,26 @@ type Task = {
 };
 
 export function CreateTaskForm({ onTaskCreated }: { onTaskCreated: (task: Task) => void }) {
-  const [loading, setLoading] = useState(false);
+  const { createTask } = useTasks([]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
-
     const formData = new FormData(e.currentTarget);
 
-    const promise = fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: formData.get('title'),
-        description: formData.get('description') || undefined,
-        priority: formData.get('priority'),
-        dueDate: formData.get('dueDate') || undefined,
-      }),
-    }).then(async (res) => {
-      if (!res.ok) throw new Error('Failed to create task');
-      return res.json();
-    });
-
-    toast.promise(promise, {
-      loading: 'Creating task...',
-      success: 'Task created!',
-      error: 'Failed to create task',
-    });
-
-    try {
-      const data = await promise;
-      onTaskCreated(data);
-      (e.target as HTMLFormElement).reset();
-    } catch {
-      // error handled by toast
-    } finally {
-      setLoading(false);
-    }
+    createTask.mutate(
+      {
+        title: formData.get('title') as string,
+        description: (formData.get('description') as string) || undefined,
+        priority: formData.get('priority') as Task['priority'],
+        dueDate: formData.get('dueDate') ? new Date(formData.get('dueDate') as string) : null,
+      },
+      {
+        onSuccess: (data) => {
+          onTaskCreated(data);
+          (e.target as HTMLFormElement).reset();
+        },
+      }
+    );
   }
 
   return (
@@ -91,8 +74,8 @@ export function CreateTaskForm({ onTaskCreated }: { onTaskCreated: (task: Task) 
               <Input id="dueDate" name="dueDate" type="date" />
             </div>
           </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Creating...' : 'Create Task'}
+          <Button type="submit" disabled={createTask.isPending} className="w-full">
+            {createTask.isPending ? 'Creating...' : 'Create Task'}
           </Button>
         </CardContent>
       </form>

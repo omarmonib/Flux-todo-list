@@ -8,6 +8,7 @@ import { KanbanBoard } from './kanban-board';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTasks } from '@/lib/hooks/use-tasks';
 
 type Task = {
   id: string;
@@ -20,7 +21,7 @@ type Task = {
 };
 
 export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { tasks, updateTask, deleteTask } = useTasks(initialTasks);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<'ALL' | Task['status']>('ALL');
   const [search, setSearch] = useState('');
@@ -29,16 +30,15 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [view, setView] = useState<'list' | 'kanban'>('list');
 
   function handleTaskCreated(task: Task) {
-    setTasks((prev) => [task, ...prev]);
     setShowForm(false);
   }
 
   function handleTaskUpdated(updated: Task) {
-    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    updateTask.mutate(updated);
   }
 
   function handleTaskDeleted(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    deleteTask.mutate(id);
   }
 
   const priorityWeight = { LOW: 0, MEDIUM: 1, HIGH: 2 };
@@ -193,7 +193,6 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         </p>
       )}
 
-      {/* Views */}
       <AnimatePresence mode="wait">
         {view === 'kanban' ? (
           <motion.div

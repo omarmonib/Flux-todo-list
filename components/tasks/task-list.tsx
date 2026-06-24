@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { TaskCard } from './task-card';
+import { AnimatedTaskList } from './animated-task-card';
 import { CreateTaskForm } from './create-task-form';
-import { TaskStats } from './task-stats';
+import { AnimatedTaskStats } from './animated-stats';
 import { KanbanBoard } from './kanban-board';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Task = {
   id: string;
@@ -73,7 +74,7 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <div className="space-y-4">
-      <TaskStats tasks={tasks} />
+      <AnimatedTaskStats tasks={tasks} />
 
       {/* Search + View Toggle */}
       <div className="flex items-center gap-3">
@@ -107,9 +108,9 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         </div>
       </div>
 
-      {/* Filters row — only show in list view */}
+      {/* Filters — list view only */}
       {view === 'list' && (
-        <>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex gap-2 flex-wrap">
               {(['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'] as const).map((s) => (
@@ -161,7 +162,7 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
               </select>
             </div>
           </div>
-        </>
+        </motion.div>
       )}
 
       {/* New Task button for Kanban */}
@@ -173,9 +174,19 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
         </div>
       )}
 
-      {showForm && <CreateTaskForm onTaskCreated={handleTaskCreated} />}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <CreateTaskForm onTaskCreated={handleTaskCreated} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Search results count */}
       {search && (
         <p className="text-xs text-muted-foreground">
           {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &quot;{search}&quot;
@@ -183,42 +194,59 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
       )}
 
       {/* Views */}
-      {view === 'kanban' ? (
-        <KanbanBoard
-          tasks={search ? filtered : tasks}
-          onUpdated={handleTaskUpdated}
-          onDeleted={handleTaskDeleted}
-        />
-      ) : (
-        <>
-          {filtered.length === 0 && !showForm && (
-            <div className="text-center py-16 text-muted-foreground">
-              <p className="text-4xl mb-3">📋</p>
-              <p>
-                {search ? 'No tasks match your search.' : 'No tasks found. Create your first one!'}
-              </p>
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="text-sm text-primary hover:underline mt-2"
-                >
-                  Clear search
-                </button>
-              )}
-            </div>
-          )}
-          <div className="grid gap-3">
-            {filtered.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onUpdated={handleTaskUpdated}
-                onDeleted={handleTaskDeleted}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      <AnimatePresence mode="wait">
+        {view === 'kanban' ? (
+          <motion.div
+            key="kanban"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <KanbanBoard
+              tasks={search ? filtered : tasks}
+              onUpdated={handleTaskUpdated}
+              onDeleted={handleTaskDeleted}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="list"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {filtered.length === 0 && !showForm && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-16 text-muted-foreground"
+              >
+                <p className="text-4xl mb-3">📋</p>
+                <p>
+                  {search
+                    ? 'No tasks match your search.'
+                    : 'No tasks found. Create your first one!'}
+                </p>
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="text-sm text-primary hover:underline mt-2"
+                  >
+                    Clear search
+                  </button>
+                )}
+              </motion.div>
+            )}
+            <AnimatedTaskList
+              tasks={filtered}
+              onUpdated={handleTaskUpdated}
+              onDeleted={handleTaskDeleted}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

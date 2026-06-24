@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { TaskCard } from './task-card';
 import { CreateTaskForm } from './create-task-form';
 import { TaskStats } from './task-stats';
+import { KanbanBoard } from './kanban-board';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -17,8 +18,6 @@ type Task = {
   createdAt: Date;
 };
 
-const statusOrder = { PENDING: 0, IN_PROGRESS: 1, COMPLETED: 2 };
-
 export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [showForm, setShowForm] = useState(false);
@@ -26,6 +25,7 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<'ALL' | Task['priority']>('ALL');
   const [sortBy, setSortBy] = useState<'createdAt' | 'dueDate' | 'priority'>('createdAt');
+  const [view, setView] = useState<'list' | 'kanban'>('list');
 
   function handleTaskCreated(task: Task) {
     setTasks((prev) => [task, ...prev]);
@@ -73,105 +73,152 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Live stats */}
       <TaskStats tasks={tasks} />
 
-      {/* Search bar */}
-      <Input
-        placeholder="🔍 Search tasks..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="max-w-sm"
-      />
-
-      {/* Status filters */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex gap-2 flex-wrap">
-          {(['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                filter === s
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {s.replace('_', ' ')} ({counts[s]})
-            </button>
-          ))}
-        </div>
-        <Button onClick={() => setShowForm((v) => !v)} size="sm">
-          {showForm ? '✕ Cancel' : '+ New Task'}
-        </Button>
-      </div>
-
-      {/* Priority + Sort */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Priority:</span>
-          {(['ALL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPriorityFilter(p)}
-              className={`text-xs px-2 py-1 rounded border transition-colors ${
-                priorityFilter === p
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs text-muted-foreground">Sort:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="text-xs h-7 rounded border border-input bg-background px-2 text-foreground"
+      {/* Search + View Toggle */}
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="🔍 Search tasks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+        <div className="flex items-center gap-1 border border-border rounded-lg p-1 ml-auto">
+          <button
+            onClick={() => setView('list')}
+            className={`px-3 py-1 rounded text-xs transition-colors ${
+              view === 'list'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <option value="createdAt">Newest</option>
-            <option value="dueDate">Due Date</option>
-            <option value="priority">Priority</option>
-          </select>
+            ☰ List
+          </button>
+          <button
+            onClick={() => setView('kanban')}
+            className={`px-3 py-1 rounded text-xs transition-colors ${
+              view === 'kanban'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            ⊞ Board
+          </button>
         </div>
       </div>
+
+      {/* Filters row — only show in list view */}
+      {view === 'list' && (
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex gap-2 flex-wrap">
+              {(['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFilter(s)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    filter === s
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {s.replace('_', ' ')} ({counts[s]})
+                </button>
+              ))}
+            </div>
+            <Button onClick={() => setShowForm((v) => !v)} size="sm">
+              {showForm ? '✕ Cancel' : '+ New Task'}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Priority:</span>
+              {(['ALL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPriorityFilter(p)}
+                  className={`text-xs px-2 py-1 rounded border transition-colors ${
+                    priorityFilter === p
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-muted-foreground">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="text-xs h-7 rounded border border-input bg-background px-2 text-foreground"
+              >
+                <option value="createdAt">Newest</option>
+                <option value="dueDate">Due Date</option>
+                <option value="priority">Priority</option>
+              </select>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* New Task button for Kanban */}
+      {view === 'kanban' && (
+        <div className="flex justify-end">
+          <Button onClick={() => setShowForm((v) => !v)} size="sm">
+            {showForm ? '✕ Cancel' : '+ New Task'}
+          </Button>
+        </div>
+      )}
 
       {showForm && <CreateTaskForm onTaskCreated={handleTaskCreated} />}
 
+      {/* Search results count */}
       {search && (
         <p className="text-xs text-muted-foreground">
           {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &quot;{search}&quot;
         </p>
       )}
 
-      {filtered.length === 0 && !showForm && (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="text-4xl mb-3">📋</p>
-          <p>{search ? 'No tasks match your search.' : 'No tasks found. Create your first one!'}</p>
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="text-sm text-primary hover:underline mt-2"
-            >
-              Clear search
-            </button>
+      {/* Views */}
+      {view === 'kanban' ? (
+        <KanbanBoard
+          tasks={search ? filtered : tasks}
+          onUpdated={handleTaskUpdated}
+          onDeleted={handleTaskDeleted}
+        />
+      ) : (
+        <>
+          {filtered.length === 0 && !showForm && (
+            <div className="text-center py-16 text-muted-foreground">
+              <p className="text-4xl mb-3">📋</p>
+              <p>
+                {search ? 'No tasks match your search.' : 'No tasks found. Create your first one!'}
+              </p>
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="text-sm text-primary hover:underline mt-2"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
           )}
-        </div>
+          <div className="grid gap-3">
+            {filtered.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onUpdated={handleTaskUpdated}
+                onDeleted={handleTaskDeleted}
+              />
+            ))}
+          </div>
+        </>
       )}
-
-      <div className="grid gap-3">
-        {filtered.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onUpdated={handleTaskUpdated}
-            onDeleted={handleTaskDeleted}
-          />
-        ))}
-      </div>
     </div>
   );
 }

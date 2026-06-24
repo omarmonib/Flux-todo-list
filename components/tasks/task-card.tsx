@@ -45,10 +45,12 @@ export function TaskCard({
   task,
   onUpdated,
   onDeleted,
+  compact = false,
 }: {
   task: Task;
   onUpdated: (task: Task) => void;
   onDeleted: (id: string) => void;
+  compact?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -157,78 +159,117 @@ export function TaskCard({
         }`}
         onClick={() => setModalOpen(true)}
       >
-        <CardContent className="flex items-start justify-between gap-4 pt-4 pb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h3
-                className={`font-medium text-foreground ${
-                  task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''
-                }`}
+        <CardContent className={`pt-3 pb-3 ${compact ? 'px-3' : 'px-4'}`}>
+          {/* Title row */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h3
+              className={`font-medium text-foreground text-sm leading-snug ${
+                task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''
+              }`}
+            >
+              {task.title}
+            </h3>
+            {!compact && (
+              <div
+                className="flex items-center gap-1 shrink-0"
+                onClick={(e) => e.stopPropagation()}
               >
-                {task.title}
-              </h3>
+                <select
+                  value={task.status}
+                  onChange={(e) => updateStatus(e.target.value as Task['status'])}
+                  disabled={loading}
+                  className="text-xs h-7 rounded border border-input bg-background px-2 text-foreground cursor-pointer"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditing(true);
+                  }}
+                  disabled={loading}
+                  className="h-7 text-xs"
+                >
+                  ✏️
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTask();
+                  }}
+                  disabled={loading}
+                  className="h-7 text-xs"
+                >
+                  ✕
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Badges */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${priorityConfig[task.priority].class}`}
+            >
+              {priorityConfig[task.priority].label}
+            </span>
+            {!compact && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityConfig[task.priority].class}`}
-              >
-                {priorityConfig[task.priority].label}
-              </span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig[task.status].class}`}
+                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${statusConfig[task.status].class}`}
               >
                 {statusConfig[task.status].label}
               </span>
-            </div>
-
-            {task.description && (
-              <p className="text-sm text-muted-foreground mt-1 truncate">{task.description}</p>
             )}
+          </div>
 
-            {task.dueDate && (
-              <p
-                className={`text-xs mt-1 ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}
+          {/* Description */}
+          {task.description && (
+            <p className="text-xs text-muted-foreground mt-1.5 truncate">{task.description}</p>
+          )}
+
+          {/* Due date */}
+          {task.dueDate && (
+            <p
+              className={`text-xs mt-1.5 ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}
+            >
+              {isOverdue ? '⚠ ' : '📅 '}
+              {new Date(task.dueDate).toLocaleDateString()}
+            </p>
+          )}
+
+          {/* Compact action buttons */}
+          {compact && (
+            <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
+              <select
+                value={task.status}
+                onChange={(e) => updateStatus(e.target.value as Task['status'])}
+                disabled={loading}
+                className="text-xs h-6 rounded border border-input bg-background px-1 text-foreground cursor-pointer flex-1"
               >
-                {isOverdue ? '⚠ Overdue · ' : '📅 '}
-                {new Date(task.dueDate).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <select
-              value={task.status}
-              onChange={(e) => updateStatus(e.target.value as Task['status'])}
-              disabled={loading}
-              className="text-xs h-7 rounded border border-input bg-background px-2 text-foreground cursor-pointer"
-            >
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(true);
-              }}
-              disabled={loading}
-              className="h-7 text-xs"
-            >
-              ✏️
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteTask();
-              }}
-              disabled={loading}
-              className="h-7 text-xs"
-            >
-              ✕
-            </Button>
-          </div>
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteTask();
+                }}
+                disabled={loading}
+                className="h-6 text-xs px-2"
+              >
+                ✕
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

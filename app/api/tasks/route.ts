@@ -1,58 +1,43 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { updateTaskSchema } from '@/lib/validations/task';
+import { createTaskSchema } from '@/lib/validations/task';
 import { revalidatePath } from 'next/cache';
 import { withAuth, withRateLimit } from '@/lib/api-helpers';
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET() {
+  const { error, session } = await withAuth();
+  if (error) return error;
+
+  const tasks = await prisma.task.findMany({
+    where: { userId: session!.user.id },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return NextResponse.json(tasks);
+}
+
+export async function POST(req: Request) {
   const { error: authError, session } = await withAuth();
   if (authError) return authError;
 
   const { error: rateLimitError } = await withRateLimit(session!.user.id);
   if (rateLimitError) return rateLimitError;
 
-  const { id } = await params;
   const body = await req.json();
-  const result = updateTaskSchema.safeParse(body);
+  const result = createTaskSchema.safeParse(body);
 
   if (!result.success) {
     return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
   }
 
-  const task = await prisma.task.findUnique({ where: { id } });
-
-  if (!task || task.userId !== session!.user.id) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
-
-  const updated = await prisma.task.update({
-    where: { id },
+  const task = await prisma.task.create({
     data: {
       ...result.data,
-      dueDate: result.data.dueDate ? new Date(result.data.dueDate) : undefined,
+      dueDate: result.data.dueDate ? new Date(result.data.dueDate) : null,
+      userId: session!.user.id,
     },
   });
 
   revalidatePath('/tasks');
-  return NextResponse.json(updated);
-}
-
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error: authError, session } = await withAuth();
-  if (authError) return authError;
-
-  const { error: rateLimitError } = await withRateLimit(session!.user.id);
-  if (rateLimitError) return rateLimitError;
-
-  const { id } = await params;
-  const task = await prisma.task.findUnique({ where: { id } });
-
-  if (!task || task.userId !== session!.user.id) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
-
-  await prisma.task.delete({ where: { id } });
-
-  revalidatePath('/tasks');
-  return NextResponse.json({ success: true });
+  return NextResponse.json(task, { status: 201 });
 }

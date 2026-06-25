@@ -1,19 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { updateTaskSchema } from '@/lib/validations/task';
 import { revalidatePath } from 'next/cache';
 import { withAuth, withRateLimit } from '@/lib/api-helpers';
 
-type RouteParams = { params: Promise<{ id: string }> };
-
-export async function PATCH(req: Request, { params }: RouteParams) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { error: authError, session } = await withAuth();
   if (authError) return authError;
 
   const { error: rateLimitError } = await withRateLimit(session!.user.id);
   if (rateLimitError) return rateLimitError;
 
-  const { id } = await params;
+  const { id } = await context.params;
   const body = await req.json();
   const result = updateTaskSchema.safeParse(body);
 
@@ -39,14 +37,14 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: RouteParams) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { error: authError, session } = await withAuth();
   if (authError) return authError;
 
   const { error: rateLimitError } = await withRateLimit(session!.user.id);
   if (rateLimitError) return rateLimitError;
 
-  const { id } = await params;
+  const { id } = await context.params;
   const task = await prisma.task.findUnique({ where: { id } });
 
   if (!task || task.userId !== session!.user.id) {

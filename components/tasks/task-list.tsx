@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatedTaskList } from './animated-task-card';
 import { CreateTaskForm } from './create-task-form';
 import { AnimatedTaskStats } from './animated-stats';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTasks } from '@/lib/hooks/use-tasks';
+import { toast } from 'sonner';
 
 type Task = {
   id: string;
@@ -28,6 +30,9 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [priorityFilter, setPriorityFilter] = useState<'ALL' | Task['priority']>('ALL');
   const [sortBy, setSortBy] = useState<'createdAt' | 'dueDate' | 'priority'>('createdAt');
   const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   function handleTaskCreated(task: Task) {
     setShowForm(false);
@@ -39,6 +44,68 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
 
   function handleTaskDeleted(id: string) {
     deleteTask.mutate(id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map((t) => t.id)));
+    }
+  }
+
+  async function bulkComplete() {
+    if (selected.size === 0) return;
+    setBulkLoading(true);
+    const ids = Array.from(selected);
+
+    await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/tasks/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'COMPLETED' }),
+        })
+      )
+    );
+
+    ids.forEach((id) => {
+      const task = tasks.find((t) => t.id === id);
+      if (task) updateTask.mutate({ ...task, status: 'COMPLETED' });
+    });
+
+    setSelected(new Set());
+    setBulkLoading(false);
+    toast.success(`${ids.length} task${ids.length > 1 ? 's' : ''} completed`);
+  }
+
+  async function bulkDelete() {
+    if (selected.size === 0) return;
+    if (!confirm(`Delete ${selected.size} task${selected.size > 1 ? 's' : ''}?`)) return;
+    setBulkLoading(true);
+    const ids = Array.from(selected);
+
+    await Promise.all(ids.map((id) => fetch(`/api/tasks/${id}`, { method: 'DELETE' })));
+    queryClient.setQueryData(['tasks'], (old: Task[] = []) =>
+      old.filter((t) => !ids.includes(t.id))
+    );
+    setSelected(new Set());
+    setBulkLoading(false);
+    toast.success(`${ids.length} task${ids.length > 1 ? 's' : ''} deleted`);
   }
 
   const priorityWeight = { LOW: 0, MEDIUM: 1, HIGH: 2 };
@@ -162,6 +229,64 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
               </select>
             </div>
           </div>
+
+          {/* Bulk actions bar */}
+          <AnimatePresence>
+            {filtered.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex items-center gap-3 p-2 bg-secondary rounded-lg"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.size === filtered.length && filtered.length > 0}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 cursor-pointer"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+                </span>
+
+                <AnimatePresence>
+                  {selected.size > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="flex items-center gap-2 ml-2"
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={bulkComplete}
+                        disabled={bulkLoading}
+                        className="h-7 text-xs"
+                      >
+                        ✓ Complete ({selected.size})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={bulkDelete}
+                        disabled={bulkLoading}
+                        className="h-7 text-xs"
+                      >
+                        🗑 Delete ({selected.size})
+                      </Button>
+                      <button
+                        onClick={() => setSelected(new Set())}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 
@@ -238,11 +363,25 @@ export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
                 )}
               </motion.div>
             )}
-            <AnimatedTaskList
-              tasks={filtered}
-              onUpdated={handleTaskUpdated}
-              onDeleted={handleTaskDeleted}
-            />
+            <div className="grid gap-3">
+              {filtered.map((task) => (
+                <div key={task.id} className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(task.id)}
+                    onChange={() => toggleSelect(task.id)}
+                    className="mt-4 h-4 w-4 cursor-pointer shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <AnimatedTaskList
+                      tasks={[task]}
+                      onUpdated={handleTaskUpdated}
+                      onDeleted={handleTaskDeleted}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

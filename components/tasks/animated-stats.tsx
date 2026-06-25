@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 type Task = {
@@ -9,6 +10,12 @@ type Task = {
 };
 
 export function AnimatedTaskStats({ tasks }: { tasks: Task[] }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const total = tasks.length;
   const completed = tasks.filter((t) => t.status === 'COMPLETED').length;
   const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
@@ -54,6 +61,33 @@ export function AnimatedTaskStats({ tasks }: { tasks: Task[] }) {
     },
   ];
 
+  if (!mounted) {
+    return (
+      <div className="space-y-4 mb-8">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {stats.map((stat) => (
+            <div key={stat.label} className={`${stat.bg} rounded-lg p-3 text-center`}>
+              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Completion rate</span>
+            <span className="font-medium text-foreground">{completionRate}%</span>
+          </div>
+          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full"
+              style={{ width: `${completionRate}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 mb-8">
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -65,15 +99,7 @@ export function AnimatedTaskStats({ tasks }: { tasks: Task[] }) {
             transition={{ delay: i * 0.05, duration: 0.3 }}
             className={`${stat.bg} rounded-lg p-3 text-center`}
           >
-            <motion.p
-              key={stat.value}
-              initial={{ scale: 1.3, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className={`text-2xl font-bold ${stat.color}`}
-            >
-              {stat.value}
-            </motion.p>
+            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
           </motion.div>
         ))}
@@ -83,14 +109,7 @@ export function AnimatedTaskStats({ tasks }: { tasks: Task[] }) {
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Completion rate</span>
-            <motion.span
-              key={completionRate}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="font-medium text-foreground"
-            >
-              {completionRate}%
-            </motion.span>
+            <span className="font-medium text-foreground">{completionRate}%</span>
           </div>
           <div className="h-2 bg-secondary rounded-full overflow-hidden">
             <motion.div

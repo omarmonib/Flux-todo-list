@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { updateTaskSchema } from '@/lib/validations/task';
 import { revalidatePath } from 'next/cache';
+import { withAuth, withRateLimit } from '@/lib/api-helpers';
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+type RouteParams = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: Request, { params }: RouteParams) {
+  const { error: authError, session } = await withAuth();
+  if (authError) return authError;
+
+  const { error: rateLimitError } = await withRateLimit(session!.user.id);
+  if (rateLimitError) return rateLimitError;
 
   const { id } = await params;
   const body = await req.json();
@@ -18,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const task = await prisma.task.findUnique({ where: { id } });
 
-  if (!task || task.userId !== session.user.id) {
+  if (!task || task.userId !== session!.user.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
@@ -34,14 +39,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function DELETE(_req: Request, { params }: RouteParams) {
+  const { error: authError, session } = await withAuth();
+  if (authError) return authError;
+
+  const { error: rateLimitError } = await withRateLimit(session!.user.id);
+  if (rateLimitError) return rateLimitError;
 
   const { id } = await params;
   const task = await prisma.task.findUnique({ where: { id } });
 
-  if (!task || task.userId !== session.user.id) {
+  if (!task || task.userId !== session!.user.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

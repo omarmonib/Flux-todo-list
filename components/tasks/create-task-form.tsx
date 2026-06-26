@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTasks } from '@/lib/hooks/use-tasks';
+import { TagInput } from './tag-input';
 
 type Task = {
   id: string;
@@ -14,11 +15,13 @@ type Task = {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
+  tags: string[];
   createdAt: Date;
 };
 
 export function CreateTaskForm({ onTaskCreated }: { onTaskCreated: (task: Task) => void }) {
   const { createTask } = useTasks([]);
+  const [tags, setTags] = useState<string[]>([]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,11 +33,13 @@ export function CreateTaskForm({ onTaskCreated }: { onTaskCreated: (task: Task) 
         description: (formData.get('description') as string) || undefined,
         priority: formData.get('priority') as Task['priority'],
         dueDate: formData.get('dueDate') ? new Date(formData.get('dueDate') as string) : null,
+        tags,
       },
       {
         onSuccess: (data) => {
           onTaskCreated(data);
           (e.target as HTMLFormElement).reset();
+          setTags([]);
         },
       }
     );
@@ -73,6 +78,10 @@ export function CreateTaskForm({ onTaskCreated }: { onTaskCreated: (task: Task) 
               <Label htmlFor="dueDate">Due Date</Label>
               <Input id="dueDate" name="dueDate" type="date" />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <TagInput tags={tags} onChange={setTags} />
           </div>
           <Button type="submit" disabled={createTask.isPending} className="w-full">
             {createTask.isPending ? 'Creating...' : 'Create Task'}

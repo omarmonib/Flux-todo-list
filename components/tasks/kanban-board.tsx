@@ -23,6 +23,7 @@ type Task = {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
+  tags: string[];
   createdAt: Date;
 };
 
@@ -132,7 +133,7 @@ export function KanbanBoard({
             >
               <div
                 id={col.status}
-                className={`rounded-lg border border-border border-t-4 ${col.color} ${col.bg} p-4 min-h-[400px]`}
+                className={`rounded-lg border border-border border-t-4 ${col.color} ${col.bg} p-4 min-h-100`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-foreground">{col.label}</h3>

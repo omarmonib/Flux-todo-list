@@ -8,7 +8,16 @@ type Task = {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
+  tags: string[];
   createdAt: Date;
+};
+
+type CreateTaskInput = {
+  title: string;
+  description?: string | null;
+  priority?: Task['priority'];
+  dueDate?: Date | null;
+  tags?: string[];
 };
 
 export function useTasks(initialTasks: Task[]) {
@@ -25,7 +34,7 @@ export function useTasks(initialTasks: Task[]) {
   });
 
   const createTask = useMutation({
-    mutationFn: async (data: Partial<Task>) => {
+    mutationFn: async (data: CreateTaskInput) => {
       const res = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

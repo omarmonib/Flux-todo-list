@@ -7,6 +7,7 @@ type Task = {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
+  tags: string[];
 };
 
 export function AnimatedTaskStats({ tasks }: { tasks: Task[] }) {

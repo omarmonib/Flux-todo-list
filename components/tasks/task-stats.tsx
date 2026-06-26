@@ -2,6 +2,7 @@ type Task = {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
+  tags: string[];
 };
 
 export function TaskStats({ tasks }: { tasks: Task[] }) {

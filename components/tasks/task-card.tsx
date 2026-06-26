@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { TaskDetailModal } from './task-detail-modal';
+import { TagBadge } from './tag-input';
 
 type Task = {
   id: string;
@@ -14,6 +15,7 @@ type Task = {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
+  tags: string[];
   createdAt: Date;
 };
 
@@ -231,6 +233,14 @@ export function TaskCard({
           {/* Description */}
           {task.description && (
             <p className="text-xs text-muted-foreground mt-1.5 truncate">{task.description}</p>
+          )}
+
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {task.tags.map((tag) => (
+                <TagBadge key={tag} tag={tag} />
+              ))}
+            </div>
           )}
 
           {/* Due date */}

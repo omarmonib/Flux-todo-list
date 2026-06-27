@@ -19,6 +19,7 @@ type CreateTaskInput = {
   priority?: Task['priority'];
   dueDate?: Date | null;
   tags?: string[];
+  subtasks?: string[];
 };
 
 

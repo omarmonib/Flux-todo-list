@@ -31,11 +31,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
   }
 
+  const { subtasks, dueDate, ...rest } = result.data;
+
   const task = await prisma.task.create({
     data: {
-      ...result.data,
-      dueDate: result.data.dueDate ? new Date(result.data.dueDate) : null,
+      ...rest,
+      dueDate: dueDate ? new Date(dueDate) : null,
       userId: session!.user.id,
+      subtasks: subtasks?.length ? { create: subtasks.map((title) => ({ title })) } : undefined,
     },
     include: { subtasks: true },
   });

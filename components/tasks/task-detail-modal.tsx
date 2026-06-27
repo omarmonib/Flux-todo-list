@@ -6,6 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { SubtaskList } from './subtask-list';
+
+
+type Subtask = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
 
 type Task = {
   id: string;
@@ -15,9 +23,9 @@ type Task = {
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate: Date | null;
   tags: string[];
+  subtasks: Subtask[];
   createdAt: Date;
 };
-
 const priorityConfig = {
   LOW: { label: 'Low', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
   MEDIUM: {
@@ -213,6 +221,11 @@ export function TaskDetailModal({
                 {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
               </p>
             )}
+          </div>
+
+          {/* Subtasks */}
+          <div className="space-y-1 border-t border-border pt-3">
+            <SubtaskList taskId={task.id} initialSubtasks={task.subtasks} />
           </div>
 
           {/* Created at */}

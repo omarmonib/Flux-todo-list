@@ -11,6 +11,7 @@ export async function GET() {
   const tasks = await prisma.task.findMany({
     where: { userId: session!.user.id },
     orderBy: { createdAt: 'desc' },
+    include: { subtasks: true },
   });
 
   return NextResponse.json(tasks);
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
       dueDate: result.data.dueDate ? new Date(result.data.dueDate) : null,
       userId: session!.user.id,
     },
+    include: { subtasks: true },
   });
 
   revalidatePath('/tasks');

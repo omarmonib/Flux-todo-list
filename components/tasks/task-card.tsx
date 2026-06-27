@@ -17,6 +17,13 @@ type Task = {
   dueDate: Date | null;
   tags: string[];
   createdAt: Date;
+  subtasks: Subtask[];
+};
+
+type Subtask = {
+  id: string;
+  title: string;
+  completed: boolean;
 };
 
 const priorityConfig = {

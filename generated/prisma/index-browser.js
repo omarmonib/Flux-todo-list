@@ -142,6 +142,14 @@ exports.Prisma.TaskScalarFieldEnum = {
   userId: 'userId'
 };
 
+exports.Prisma.SubtaskScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  completed: 'completed',
+  createdAt: 'createdAt',
+  taskId: 'taskId'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -170,7 +178,8 @@ exports.Priority = exports.$Enums.Priority = {
 
 exports.Prisma.ModelName = {
   User: 'User',
-  Task: 'Task'
+  Task: 'Task',
+  Subtask: 'Subtask'
 };
 
 /**

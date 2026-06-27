@@ -10,6 +10,7 @@ type Task = {
   dueDate: Date | null;
   tags: string[];
   createdAt: Date;
+  subtasks: Subtask[];
 };
 
 type CreateTaskInput = {
@@ -19,6 +20,14 @@ type CreateTaskInput = {
   dueDate?: Date | null;
   tags?: string[];
 };
+
+
+type Subtask = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
+
 
 export function useTasks(initialTasks: Task[]) {
   const qc = useQueryClient();
